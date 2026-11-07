@@ -63,3 +63,28 @@ def select(table_data, where_clause=None):
     col, val = where_clause
     filtered = [row for row in table_data if str(row.get(col)) == str(val)]
     return filtered
+
+@handle_db_errors
+def update(table_data, set_clause, where_clause):
+    col_w, val_w = where_clause
+    col_s, val_s = set_clause
+    updated = False
+    for row in table_data:
+        if str(row.get(col_w)) == str(val_w):
+            row[col_s] = val_s
+            updated = True
+    if updated:
+        print("Записи успешно обновлены.")
+    else:
+        print("Записи для обновления не найдены.")
+    return table_data
+
+@handle_db_errors
+@confirm_action("удаление записей")
+def delete(table_data, where_clause):
+    col, val = where_clause
+    initial_len = len(table_data)
+    table_data[:] = [row for row in table_data if str(row.get(col)) != str(val)]
+    deleted_count = initial_len - len(table_data)
+    print(f"Удалено записей: {deleted_count}")
+    return table_data

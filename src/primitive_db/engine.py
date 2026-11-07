@@ -88,3 +88,35 @@ def run():
                     print(table)
                 else:
                     print("Записей не найдено.")
+            elif cmd == "update":
+                table_name = args[1]
+                set_str = " ".join(args[3:args.index("where")])
+                where_str = " ".join(args[args.index("where")+1:])
+                set_clause = parser.parse_condition(set_str)
+                where_clause = parser.parse_condition(where_str)
+                data = utils.load_table_data(table_name)
+                data = core.update(data, set_clause, where_clause)
+                utils.save_table_data(table_name, data)
+            elif cmd == "delete":
+                table_name = args[2]
+                where_str = " ".join(args[4:])
+                where_clause = parser.parse_condition(where_str)
+                data = utils.load_table_data(table_name)
+                data = core.delete(data, where_clause)
+                utils.save_table_data(table_name, data)
+            elif cmd == "info":
+                table_name = args[1]
+                if table_name in metadata:
+                    cols = ", ".join([f"{c['name']}:{c['type']}" for c in metadata[table_name]])
+                    print(f"Таблица: {table_name}")
+                    print(f"Столбцы: {cols}")
+                    data = utils.load_table_data(table_name)
+                    print(f"Количество записей: {len(data)}")
+                else:
+                    print("Таблица не найдена.")
+            else:
+                print(f"Функции {cmd} нет. Попробуйте снова.")
+        except IndexError:
+            print("Ошибка: не хватает аргументов для команды.")
+        except Exception as e:
+            print(f"Ошибка: {e}")
