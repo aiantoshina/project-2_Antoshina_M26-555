@@ -5,6 +5,7 @@ def parse_values(values_str):
     values = [v.strip().strip("'\"") for v in values_str.split(",")]
     return values
 
+
 def parse_condition(cond_str):
     """Парсит 'age = 28' в ('age', '28')."""
     parts = [p.strip() for p in cond_str.split("=")]
