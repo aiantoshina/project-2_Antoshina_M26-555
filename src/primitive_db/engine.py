@@ -1,10 +1,15 @@
 import shlex
-from prompt import string
+
 from prettytable import PrettyTable
+from prompt import string
+
 from primitive_db import core, parser, utils
+from primitive_db.constants import VALID_TYPES
+
 
 def create_cacher():
     cache = {}
+
     def cache_result(key, value_func):
         if key in cache:
             print("(Из кэша)")
@@ -12,9 +17,12 @@ def create_cacher():
         result = value_func()
         cache[key] = result
         return result
+
     return cache_result
 
+
 cache_select = create_cacher()
+
 
 def print_help():
     print("\n***Процесс работы с таблицей***")
@@ -24,32 +32,55 @@ def print_help():
     print("<command> drop_table <имя> - удалить таблицу")
     print("<command> insert into <имя> values (<значения>) - добавить запись")
     print("<command> select from <имя> [where <столбец> = <значение>] - прочитать")
-    print("<command> update <имя> set <столбец> = <значение> where <столбец> = <значение>")
+    print(
+        "<command> update <имя> set <столбец> = <значение> where <столбец> = <значение>"
+    )
     print("<command> delete from <имя> where <столбец> = <значение>")
     print("<command> info <имя> - информация о таблице")
     print("<command> help - справка")
     print("<command> exit - выход\n")
 
+
 def run():
     print("DB project is running!")
     metadata = utils.load_metadata()
-    
+
     while True:
         try:
             user_input = string(">>>Введите команду: ")
             if not user_input.strip():
                 continue
-                
+
             args = shlex.split(user_input)
             cmd = args[0].lower()
-            
+
             if cmd == "exit":
                 break
             elif cmd == "help":
                 print_help()
             elif cmd == "create_table":
+                if len(args) < 3:
+                    print("Некорректное значение: не указаны столбцы.")
+                    continue
+
                 table_name = args[1]
                 columns = args[2:]
+
+                valid = True
+                for col in columns:
+                    if ":" not in col:
+                        print(f"Некорректное значение: {col}. Попробуйте снова.")
+                        valid = False
+                        break
+                    _, dtype = col.split(":")
+                    if dtype not in VALID_TYPES:
+                        print(f"Некорректное значение: {col}. Попробуйте снова.")
+                        valid = False
+                        break
+
+                if not valid:
+                    continue
+
                 metadata = core.create_table(metadata, table_name, columns)
                 utils.save_metadata(metadata)
             elif cmd == "list_tables":
@@ -79,7 +110,7 @@ def run():
                     result = cache_select(key, lambda: core.select(data, where))
                 else:
                     result = core.select(data)
-                
+
                 if result:
                     table = PrettyTable()
                     table.field_names = [col["name"] for col in metadata[table_name]]
@@ -90,8 +121,8 @@ def run():
                     print("Записей не найдено.")
             elif cmd == "update":
                 table_name = args[1]
-                set_str = " ".join(args[3:args.index("where")])
-                where_str = " ".join(args[args.index("where")+1:])
+                set_str = " ".join(args[3 : args.index("where")])
+                where_str = " ".join(args[args.index("where") + 1 :])
                 set_clause = parser.parse_condition(set_str)
                 where_clause = parser.parse_condition(where_str)
                 data = utils.load_table_data(table_name)
@@ -107,7 +138,9 @@ def run():
             elif cmd == "info":
                 table_name = args[1]
                 if table_name in metadata:
-                    cols = ", ".join([f"{c['name']}:{c['type']}" for c in metadata[table_name]])
+                    cols = ", ".join(
+                        [f"{c['name']}:{c['type']}" for c in metadata[table_name]]
+                    )
                     print(f"Таблица: {table_name}")
                     print(f"Столбцы: {cols}")
                     data = utils.load_table_data(table_name)
